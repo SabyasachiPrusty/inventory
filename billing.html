@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Billing</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<style>
+
+.container{
+width:70%;
+margin:auto;
+}
+
+.invoice{
+background:white;
+color:black;
+padding:20px;
+margin-top:30px;
+border-radius:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Billing System</h1>
+
+<div class="container">
+
+<select id="product"></select>
+
+<input id="quantity" placeholder="Quantity">
+
+<button onclick="generateBill()">Generate Bill</button>
+
+<div class="invoice" id="invoice"></div>
+
+</div>
+
+<script>
+
+let products=[];
+
+fetch("/api/products")
+.then(res=>res.json())
+.then(data=>{
+
+products=data;
+
+let options="";
+
+data.forEach(p=>{
+options += `<option value="${p.id}">
+${p.name} - ₹${p.price}
+</option>`;
+});
+
+document.getElementById("product").innerHTML=options;
+
+});
+
+
+function generateBill(){
+
+let productId=document.getElementById("product").value;
+let quantity=document.getElementById("quantity").value;
+
+let product=products.find(p=>p.id==productId);
+
+let total=product.price*quantity;
+
+fetch("/api/billing",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+product_id:productId,
+quantity:quantity,
+price:product.price
+})
+});
+
+let invoiceHTML=`
+
+<h2>Invoice</h2>
+
+<p><b>Product:</b> ${product.name}</p>
+
+<p><b>Price:</b> ₹${product.price}</p>
+
+<p><b>Quantity:</b> ${quantity}</p>
+
+<p><b>Total:</b> ₹${total}</p>
+
+<p><b>Date:</b> ${new Date().toLocaleString()}</p>
+
+<button onclick="window.print()">Print Invoice</button>
+`;
+
+document.getElementById("invoice").innerHTML=invoiceHTML;
+
+}
+
+
+</script>
+
+</body>
+</html>

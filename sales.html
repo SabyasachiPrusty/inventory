@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sales Report</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+.container{
+width:85%;
+margin:auto;
+}
+
+.cards{
+display:flex;
+justify-content:space-around;
+margin-bottom:30px;
+}
+
+.card{
+background:white;
+color:black;
+padding:20px;
+border-radius:10px;
+width:25%;
+box-shadow:0 5px 15px rgba(0,0,0,0.2);
+}
+
+.chart-box{
+background:white;
+padding:20px;
+border-radius:10px;
+margin-bottom:30px;
+}
+
+table{
+width:100%;
+background:white;
+color:black;
+border-radius:10px;
+}
+
+th,td{
+padding:10px;
+text-align:center;
+}
+
+th{
+background:#3498db;
+color:white;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Sales Analytics</h1>
+
+<div class="container">
+
+<div class="cards">
+
+<div class="card">
+<h3>Today's Sales</h3>
+<h2 id="todaySales">0</h2>
+</div>
+
+<div class="card">
+<h3>This Month</h3>
+<h2 id="monthSales">0</h2>
+</div>
+
+<div class="card">
+<h3>This Year</h3>
+<h2 id="yearSales">0</h2>
+</div>
+
+</div>
+
+
+<div class="chart-box">
+<h2>Monthly Sales Chart</h2>
+<canvas id="salesChart"></canvas>
+</div>
+
+
+<div class="chart-box">
+<h2>Top Selling Products</h2>
+
+<table border="1">
+
+<thead>
+<tr>
+<th>Product ID</th>
+<th>Total Quantity Sold</th>
+</tr>
+</thead>
+
+<tbody id="topProducts"></tbody>
+
+</table>
+
+</div>
+
+
+<div class="chart-box">
+
+<h2>Sales History</h2>
+
+<table border="1">
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Product</th>
+<th>Quantity</th>
+<th>Total</th>
+<th>Date</th>
+</tr>
+</thead>
+
+<tbody id="salesTable"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+<script>
+
+fetch("/api/sales")
+.then(res=>res.json())
+.then(data=>{
+
+let todayTotal=0;
+let monthTotal=0;
+let yearTotal=0;
+
+let today=new Date();
+let currentMonth=today.getMonth();
+let currentYear=today.getFullYear();
+
+let monthlySales = new Array(12).fill(0);
+let productSales = {};
+
+let tableHTML="";
+
+data.forEach(sale=>{
+
+let saleDate=new Date(sale.date);
+
+let month=saleDate.getMonth();
+let year=saleDate.getFullYear();
+
+let total=parseFloat(sale.total);
+let qty=parseInt(sale.quantity);
+
+if(
+saleDate.getDate()==today.getDate() &&
+month==currentMonth &&
+year==currentYear
+){
+todayTotal += total;
+}
+
+if(month==currentMonth && year==currentYear){
+monthTotal += total;
+}
+
+if(year==currentYear){
+yearTotal += total;
+}
+
+monthlySales[month]+=total;
+
+if(!productSales[sale.product_id]){
+productSales[sale.product_id]=0;
+}
+
+productSales[sale.product_id]+=qty;
+
+tableHTML += `
+<tr>
+<td>${sale.id}</td>
+<td>${sale.product_id}</td>
+<td>${sale.quantity}</td>
+<td>${sale.total}</td>
+<td>${sale.date}</td>
+</tr>
+`;
+
+});
+
+document.getElementById("todaySales").innerText="₹"+todayTotal;
+document.getElementById("monthSales").innerText="₹"+monthTotal;
+document.getElementById("yearSales").innerText="₹"+yearTotal;
+
+document.getElementById("salesTable").innerHTML=tableHTML;
+
+
+let topHTML="";
+
+Object.keys(productSales)
+.sort((a,b)=>productSales[b]-productSales[a])
+.slice(0,5)
+.forEach(p=>{
+
+topHTML += `
+<tr>
+<td>${p}</td>
+<td>${productSales[p]}</td>
+</tr>
+`;
+
+});
+
+document.getElementById("topProducts").innerHTML=topHTML;
+
+
+let ctx=document.getElementById("salesChart");
+
+new Chart(ctx,{
+type:"bar",
+data:{
+labels:[
+"Jan","Feb","Mar","Apr","May","Jun",
+"Jul","Aug","Sep","Oct","Nov","Dec"
+],
+datasets:[{
+label:"Monthly Sales",
+data:monthlySales
+}]
+}
+});
+
+});
+
+</script>
+
+</body>
+</html>
